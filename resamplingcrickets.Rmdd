@@ -1,0 +1,251 @@
+---
+title: "Resampling crickets"
+author: "ZOOL316"
+date: "2022"
+output: pdf_document
+urlcolor: blue
+---
+
+## Introduction
+
+Resampling-based statistics are great. In the context of this course, we’ll use them in two ways. 
+
+First, they are a great way to do statistical inferences with complex data or when the assumptions of parametric methods are not met.
+
+Second, they are a very powerful tool to support the understanding of the core concepts of frequentist statistics. They will help us grasp concepts like the normal distribution, Standard Error, null distribution, confidence intervals and p-values.
+
+In other words, resampling based methods are a great way to stretch your brain a little and to give you a powerful tool without throwing you completely new concepts after two months of intense learning. 
+
+In these re-sampling tutorials, we will build our way towards statistical testing using resampling-based methods. We will use examples developed by [Fieberg et al. (2020)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7211410/).
+
+I have simply adapted their content for our purposes. Their definitions are in Appendix 1 of this tutorial. If you can get your head around them, you can do anything!
+
+## Key concepts
+
+Key concepts ([Fieberg et al. 2020](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7211410/)):
+
+* A *statistical sample* is a set of observations from one statistical population. It is not referring to just one biological sample.
+* A *sampling distribution* is the distribution of sample statistics computed using different samples of the same size from the same population. 
+* A *null or randomization distribution* is a collection of statistics from samples simulated assuming the null hypothesis is true. 
+
+Most of the time, we only have access to one statistical sample made of several observations from a given population.  
+
+Re-sampling is a great way to understand concretely what would happen if we were to draw samples again and again from our population. It can also be done for statistical testing.
+
+\newpage
+
+## Exercise - Sage crickets
+
+We are going to work with a dataset of sage crickets that comes from  Whitlock and Schluter wonderful book, The Analysis of biological data (2nd ed.).
+
+![Sage Brush Crickets (Cyphoderris strepitans). Picture: Kevin Judge](SageBrushCricket.jpeg){width=50%}
+
+
+They wanted to understand if the time to mating depends on the diet of the female. They measured the time to mating with 12 `starved` females vs 12 `fed` females.
+
+
+
+*NOTE:* If you'd rather go through an R Markdown file. You can download it using [this code](https://github.com/ldutoit/ZOOL316_tuto/blob/main/downloadresample_crickets.md).
+
+
+```{r, message= F,warning=F, results='hide'}
+download.file("https://raw.githubusercontent.com/ldutoit/ZOOL316_tuto/main/data/sagebrushcrickets.txt","sagebrushcrickets.txt")
+crickets<-read.table("sagebrushcrickets.txt",h=T)
+str(crickets)
+```
+
+`str()`  output is a bit dense but it does allow us to understand the data quite well. `24 observations of 2 variables`. The column `treatment` is whether they are fed or starved, and the next one is the time to mating.
+
+Our question: Does the time to mating depend on the diet of the female?
+
+**The null hypothesis (aka no effect)**: The diet of the female does not influence time to mating.
+
+**The alternative hypothesis**: There is a difference in time to mating between starved and fed females.
+
+The first thing to do is ALWAYS to look at the data:
+
+```{r, message= F,warning=F, results='hide'}
+par(mfrow=c(1,2))
+plot(density(crickets$time.to.mating[1:12]),main="starved",xlab="Time to mating")
+plot(density(crickets$time.to.mating[12:24]),main="fed",xlab="Time to mating")
+
+```
+
+* Is this data normal?
+
+* Can you perform a parametric data on this dataset? What are the alternatives?
+
+
+Let's look at is the difference between the means:
+
+```{r, message= F,warning=F, results='hide'}
+mean(crickets$time.to.mating[crickets$treatment=="fed"])-
+  mean(crickets$time.to.mating[crickets$treatment=="starved"])
+```
+
+Write that down. 
+
+Is that significant? We'll use resampling to figure that out.
+
+We'll create a *null distribution* by resampling our sample assuming the null is true.
+
+* 1. Creating the *randomized distribution*
+
+We can re-sample * 2 random groups* of 12 crickets regardless of the treatment and measure the difference between them. This will be our randomised distribution, there should be no difference between the two random groups since we mixed samples together. We can do that again and again to obtain a randomised distribution. 
+ \newpage
+
+![Schematic of resampling. Fieberg et al. (2020)](BootstrapFig.jpg){width=70%}
+
+We'll use bootstrapping. A bootstrap sample is a sample obtained by resampling  with replacement (i.e. the same data point can be observed several times). This allows us to obtain different samples of identical sizes, which is important.
+
+We can then compare the difference we observe in our dataset with the randomised distribution.
+
+```{r, message= F,warning=F, results='hide'}
+samp.diff <-c()
+for (i in 1:10000){ ##do 10000:
+  # 12 random samples in group 1
+  random_group1<-sample(crickets$time.to.mating, 12, replace=T)
+  # 12 random samples in group 2
+  random_group2<-sample(crickets$time.to.mating, 12, replace=T)
+  samp.diff[i]<-mean(random_group2)-mean(random_group1)
+}
+```
+
+Wow! that was a little bit of dark magic. That was a programming loop. For now, just keep going, a detailed explanation is included in Appendix 2 at the end of this tutorial should you wish to understand how it works later. 
+
+We can use the quantiles of this distribution to derive a 05% confidence interval for the *null* distribution.
+
+```{r, message= F,warning=F, results='hide'}
+quantile(samp.diff,c(0.025,0.975)) 
+```
+
+This means that if our observed difference was outside of those boundaries, there would be less than 5% of observing such a difference by chance. 
+
+* Can you reject the null hypothesis?
+
+Let's visualise it:
+
+```{r, message= F,warning=F, results='hide'}
+hist(samp.diff,
+     xlab = "Difference between groups",
+     main = "Randomisation distribution of 10'000 bootstraps"
+     ,col="grey")
+
+# Let's add lines for the 95% CI4
+abline(v=quantile(samp.diff,c(0.025,0.975)),col="black",lwd=2)
+```
+
+Let's understand our p-value. In other words, it is the probability of observing a group difference bigger than our observed difference (18.3) by chance.
+
+It is the proportion of values in the null distribution that have a difference between random groups of 18.3 or more.
+
+```{r, message= F,warning=F, results='hide'}
+sum(abs(samp.diff)>=18.3)/10000
+```
+
+This exact value will depend on your bootstrap. We have a p-value of roughly ~0.0125 (the exact result will depend on your simulations). There is a 12.5% of observing a difference as big as 18.3 if there is no real difference between the groups. 
+
+
+### Summary of what we have done.
+
+
+Our question: Does the time to mating depend on the diet of the female?
+
+**The null hypothesis (aka no effect)**: The diet of the female does not influence time to mating.
+
+**The alternative hypothesis**: There is a difference in time to mating between starved and fed females.
+
+How big would the difference have to be between the two groups to be able to reject the fact that there is a difference between the two groups? It would have to fall outside of the 95% confidence interval **for the mean** of the null distribution. 
+
+We created a null distribution by measuring our statistics in a randomised group of samples. We pulled 12 samples and assigned them to a random group, and then 12 others and assigned them to another group. We measured the difference between the two groups, added that to the null distribution and we repeated it 10'000 times.
+
+The p-value is the proportion of values in the null distribution that have a difference between the groups of 18.3 or more.
+
+\newpage
+
+## Appendix 1
+
+Useful definitions from [Fieberg et al. (2020)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7211410/):
+
+* A *sampling distribution* is the distribution of sample statistics computed using different samples of the same size from the same population. 
+* A *bootstrap distribution* is a distribution of statistics computed using different samples of the same size from the same estimated population formed by merging many copies of the original sample data. Alternatively, the sample data may be used to estimate parameters of statistical distribution, and then this distribution can be used to generate new samples. This alternative is termed the parametric bootstrap. 
+* A *null or randomization distribution* is a collection of statistics from samples simulated assuming the null hypothesis is true. 
+* A *confidence interval for a parameter* is an interval computed from data using a method that will capture the parameter for a specified proportion of all samples (e.g., 95% of the time for a 95% confidence interval) 
+* The *p-value* is the chance of obtaining a sample statistic as extreme (or more extreme than) the observed sample statistic if the null hypothesis is true. 
+
+\newpage
+
+## Appendix 2: Understanding the loop
+
+This is more programming than stats, but if you are interested in understanding the loop, here is the explanation. 
+
+Loops are an extremely common and a very powerful tool in programmation because they allow us to make computers do what they are best at, repeating the same task for a ginormous amount of time without a single mistake.
+
+Here is the syntax in plain English:
+
+```
+for (thing in list_of_things) {
+  do a task
+}
+```
+
+Let's start with an  example:
+
+```{r, message= F,warning=F, results='hide'}
+for (x in c(1,2,3)){
+  print(x)
+}
+```
+
+The task between the {} brackets will be repeated for each value of x.
+
+In short:
+
+x will be assigned 1, then printed. 
+x will be assigned 2, then printed.
+x will be assigned 3, then printed.
+There is now no more value for x, the loop is finished.
+
+Note that it would work exactly the same whether you use x, y or banana. It is just a variable name:
+
+```{r, message= F,warning=F, results='hide'}
+for (banana in c(1,2,3)){
+  # task
+  print(banana)
+}
+```
+
+So how did we use that for re-sampling?
+
+```{r, message= F,warning=F, results='hide'}
+samp.diff <-c()
+for (i in 1:10000){ ##do 10000:
+  # 12 random samples in group 1
+  random_group1<-sample(crickets$time.to.mating, 12, replace=T)
+  # 12 random samples in group 2
+  random_group2<-sample(crickets$time.to.mating, 12, replace=T)
+  samp.diff[i]<-mean(random_group2)-mean(random_group1)
+}
+```
+
+1. We created an empty object called `samp.diff` to store the results.
+
+1:10000 simply is a vector of all the integers between 1 and 10000. Try 1 to 10:
+
+
+```{r, message= F,warning=F, results='hide'}
+1:10
+```
+
+
+`for (i in 1:10000)` means the task will be repeated with the letter i taking every value between 1 and 10000.
+
+The task between the {} brackets was to sample 12 crickets per group and save the difference at the position `i` in `samp.diff`. The position is first 1, then 2, then 3... 10'000.
+
+That way we end up with `samp.diff` being 10'000 sampling events, how cool is that? 
+ * Try 100,000, it is not much longer
+ * Try replacing `i` in the `for` statement and in the loop with something else.
+ * Try making your own loop by printing the square of numbers 1:20.
+
+
+
