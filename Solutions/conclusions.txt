@@ -1,1 +1,9 @@
+Question:
+In the light of your observed correlation  in your original sample, what can you conclude about your hypotheses?
+
+Answer:
+
+The 95% CI of the randomised distribution does not include our sample correlation coefficient (0.36). 
+We can therefore reject the null hypothesis at the 5% cut-off. and conclude that there is a non-null
+correlation between sepal width and sepal length in orchids.
 
