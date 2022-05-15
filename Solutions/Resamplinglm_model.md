@@ -9,4 +9,4 @@ Answers:
 
 The residuals are not normally distributed.
 
-The observations are not independent, we could use nested models!
+The observations are not independent, we could use nested models. That would only take care of the nested design, we would have to check the other assumptions again.
