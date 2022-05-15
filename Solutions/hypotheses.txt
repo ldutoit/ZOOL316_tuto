@@ -1,0 +1,7 @@
+Question: What are your hypotheses?
+
+Answer:
+
+Null hypothesis: There is no correlation between sepal width and sepal length.
+
+Alternative hypothesis: There is a non-null correlation between sepal width and sepal length.
