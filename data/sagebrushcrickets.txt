@@ -10,7 +10,7 @@ starved	17.9
 starved	21.7
 starved	29.0
 starved	72.3
-fed	1.5
+starved	1.5
 fed	1.7
 fed	2.4
 fed	3.6
