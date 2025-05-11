@@ -4,6 +4,4 @@ Are the CI from the bootstrap distribution and the one from the linear model sim
 
 Answer:
 
-The confidence intervals are not that different but they are clearly not the same. You might think, that was close enough. 
-But how do you know that, because you just checked. Resampling allows you to draw correct confidence intervals. The one given by the model is under
-severl assumptions.
+The confidence intervals are not that different but they are clearly not the same. You might think, that was close enough.  Resampling allows you to draw the correct confidence intervals without being constrained by the assumptions of the model.
